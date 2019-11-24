@@ -2,7 +2,7 @@ y = 1;
 y = y = 2 + y + 3;
 x = 1;
 print x;
-x += 1;
+x += 1;f\
 print x;
 print y;
 z = not (5 + (x = 5+
