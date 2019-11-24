@@ -1,0 +1,21 @@
+y = 1;
+y = y = 2 + y + 3;
+x = 1;
+print x;
+x += 1;
+print x;
+print y;
+z = not (5 + (x = 5+
+                not(
+                    x and y
+                   )
+                and not 0
+             )
+        );
+print z;
+z = 5 + (x = 5 + (y = 5 * 5 ));
+if (x > 5){
+    print x;
+}
+print y;
+print z;
