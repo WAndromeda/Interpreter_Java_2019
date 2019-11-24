@@ -175,11 +175,31 @@ public class Parser {
         return e1;
     }
 
-    public ExprNode parseAssignment(){
+    public ExprNode parseLogicalAnd() {
         ExprNode e1 = parseOr();
         Token op;
-        while ((op = match(ASSIGNMENT, ASSIGNMENT_ADD, ASSIGNMENT_SUB, ASSIGNMENT_DIV, ASSIGNMENT_MUL, ASSIGNMENT_AND, ASSIGNMENT_XOR, ASSIGNMENT_OR)) != null) {
+        while ((op = match(LAND)) != null) {
             ExprNode e2 = parseOr();
+            e1 = new BinOpNode(op, e1, e2);
+        }
+        return e1;
+    }
+
+    public ExprNode parseLogicalOr() {
+        ExprNode e1 = parseLogicalAnd();
+        Token op;
+        while ((op = match(LOR)) != null) {
+            ExprNode e2 = parseLogicalAnd();
+            e1 = new BinOpNode(op, e1, e2);
+        }
+        return e1;
+    }
+
+    public ExprNode parseAssignment(){
+        ExprNode e1 = parseLogicalOr();
+        Token op;
+        while ((op = match(ASSIGNMENT, ASSIGNMENT_ADD, ASSIGNMENT_SUB, ASSIGNMENT_DIV, ASSIGNMENT_MUL, ASSIGNMENT_AND, ASSIGNMENT_XOR, ASSIGNMENT_OR)) != null) {
+            ExprNode e2 = parseLogicalOr();
             e1 = new BinOpNode(op, e1, e2);
         }
         return e1;
@@ -196,7 +216,7 @@ public class Parser {
         else
             if (service.type == ID) {
                 Token assign = require(ASSIGNMENT, ASSIGNMENT_ADD, ASSIGNMENT_SUB, ASSIGNMENT_DIV, ASSIGNMENT_MUL, ASSIGNMENT_AND, ASSIGNMENT_XOR, ASSIGNMENT_OR);
-                e1 = parseAssignment();
+                e1 = parseExpression();
                 e1 = new BinOpNode(assign, new VarNode(service), e1);
             }
             else
@@ -303,6 +323,12 @@ public class Parser {
                         case GREATER_EQUAL:
                             if (binOp.left.getValue() >= right) return 1;
                             else return 0;
+                        case LAND:
+                            if (valueToBoolean(binOp.left.getValue()) && valueToBoolean(right)) return 1;
+                            else return 0;
+                        case LOR:
+                            if (valueToBoolean(binOp.left.getValue()) || valueToBoolean(right))  return 1;
+                            else return 0;
                         case ASSIGNMENT:
                             Integer value = 1;
                             if (binOp.left.getValue() == null)
@@ -363,6 +389,13 @@ public class Parser {
         }
         //System.out.println("СЛУЖЕБНОЕ: " + sum + "\n");
         return Integer.parseInt(sum, 2);
+    }
+
+    private static boolean valueToBoolean(Integer integer){
+        if (integer != null && Math.abs(integer) > 0)
+            return true;
+        else
+            return false;
     }
 
     public static void clear(){
