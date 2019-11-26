@@ -1,6 +1,6 @@
 package com.white.andromeda;
 
-import com.white.andromeda.Exception.LexException;
+import com.white.andromeda.Exception.LexerException;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -53,7 +53,7 @@ public class Lexer {
                     return true;
                 }
             }
-            throw new LexException("Неизвестный символ\nСтрока: " + line +"\nПозиция: " + pos + "\n");
+            throw new LexerException("Неизвестный символ\nСтрока: " + line +"\nПозиция: " + pos + "\n");
         }
     }
 

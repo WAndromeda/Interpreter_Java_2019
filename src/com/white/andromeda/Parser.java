@@ -1,8 +1,7 @@
 package com.white.andromeda;
 
-
 import com.white.andromeda.AST.*;
-import com.white.andromeda.Exception.ParseException;
+import com.white.andromeda.Exception.ParserException;
 import com.white.andromeda.Exception.SemanticsException;
 
 import java.util.Arrays;
@@ -14,10 +13,10 @@ import static com.white.andromeda.TokenType.*;
 
 public class Parser {
     public static Hashtable<String, Integer> intVariables;
-    private static Stack<UnaryOpNode> conditions;
-    private static Stack<Integer> positions;
-    private static  List<Token> tokens;
-    private static int pos = 0;
+    private Stack<UnaryOpNode> conditions;
+    private Stack<Integer> positions;
+    private List<Token> tokens;
+    private int pos = 0;
 
     public Parser(List<Token> tokens) {
         this.tokens = tokens;
@@ -32,9 +31,9 @@ public class Parser {
     private void error(String message) {
         if (pos < tokens.size()) {
             Token t = tokens.get(pos);
-            throw new ParseException(message + "\nв строке:  " + t.line + "\nв позиции: " + t.pos);
+            throw new ParserException(message + "\nв строке:  " + t.line + "\nв позиции: " + t.pos);
         } else {
-            throw new ParseException(message + " в конце файла");
+            throw new ParserException(message + " в конце файла");
         }
     }
 
@@ -56,12 +55,11 @@ public class Parser {
         return t;
     }
 
-    public static Integer skipBlock(){
+    private Integer skipBlock(){
         for (int i = positions.peek(); i < tokens.size(); i++){
             if (tokens.get(i).type == IF || tokens.get(i).type == WHILE){
-                Parser parser = new Parser();
                 pos = i+1;
-                parser.parseLogicalCondition();
+                parseLogicalCondition();
                 conditions.push(new UnaryOpNode(tokens.get(i), null));
                 positions.push(pos);
                 i = skipBlock();
@@ -73,7 +71,7 @@ public class Parser {
                     return pos;
                 }
         }
-        throw new ParseException("Ожидалось " + RBRACE + " для условия|цикла расположенного", conditions.pop().op);
+        throw new ParserException("Ожидалось " + RBRACE + " для условия|цикла расположенного", conditions.pop().op);
     }
 
     private ExprNode parseElem() {
@@ -97,7 +95,7 @@ public class Parser {
         }
     }
 
-    public ExprNode parseUnary(){
+    private ExprNode parseUnary(){
         Token unary = match(NOT);
         ExprNode e1 = parseParens();
         if (unary != null)
@@ -105,7 +103,7 @@ public class Parser {
         return e1;
     }
 
-    public ExprNode parseDivMul() {
+    private ExprNode parseDivMul() {
         ExprNode e1 = parseUnary();
         Token op;
         while ((op = match(TokenType.MUL, TokenType.DIV)) != null) {
@@ -115,7 +113,7 @@ public class Parser {
         return e1;
     }
 
-    public ExprNode parseAddSub() {
+    private ExprNode parseAddSub() {
         ExprNode e1 = parseDivMul();
         Token op;
         while ((op = match(TokenType.ADD, TokenType.SUB)) != null) {
@@ -125,7 +123,7 @@ public class Parser {
         return e1;
     }
 
-    public ExprNode parseLessLEqualGreaterGEqual() {
+    private ExprNode parseLessLEqualGreaterGEqual() {
         ExprNode e1 = parseAddSub();
         Token op;
         while ((op = match(LESS, LESS_EQUAL, GREATER, GREATER_EQUAL)) != null) {
@@ -135,7 +133,7 @@ public class Parser {
         return e1;
     }
 
-    public ExprNode parseEqualNEqual() {
+    private ExprNode parseEqualNEqual() {
         ExprNode e1 = parseLessLEqualGreaterGEqual();
         Token op;
         while ((op = match(EQUAL, NEQUAL)) != null) {
@@ -145,7 +143,7 @@ public class Parser {
         return e1;
     }
 
-    public ExprNode parseAnd() {
+    private ExprNode parseAnd() {
         ExprNode e1 = parseEqualNEqual();
         Token op;
         while ((op = match(TokenType.AND)) != null) {
@@ -155,7 +153,7 @@ public class Parser {
         return e1;
     }
 
-    public ExprNode parseXor() {
+    private ExprNode parseXor() {
         ExprNode e1 = parseAnd();
         Token op;
         while ((op = match(XOR)) != null) {
@@ -165,7 +163,7 @@ public class Parser {
         return e1;
     }
 
-    public ExprNode parseOr() {
+    private ExprNode parseOr() {
         ExprNode e1 = parseXor();
         Token op;
         while ((op = match(OR)) != null) {
@@ -175,7 +173,7 @@ public class Parser {
         return e1;
     }
 
-    public ExprNode parseLogicalAnd() {
+    private ExprNode parseLogicalAnd() {
         ExprNode e1 = parseOr();
         Token op;
         while ((op = match(LAND)) != null) {
@@ -185,7 +183,7 @@ public class Parser {
         return e1;
     }
 
-    public ExprNode parseLogicalOr() {
+    private ExprNode parseLogicalOr() {
         ExprNode e1 = parseLogicalAnd();
         Token op;
         while ((op = match(LOR)) != null) {
@@ -195,7 +193,7 @@ public class Parser {
         return e1;
     }
 
-    public ExprNode parseAssignment(){
+    private ExprNode parseAssignment(){
         ExprNode e1 = parseLogicalOr();
         Token op;
         while ((op = match(ASSIGNMENT, ASSIGNMENT_ADD, ASSIGNMENT_SUB, ASSIGNMENT_DIV, ASSIGNMENT_MUL, ASSIGNMENT_AND, ASSIGNMENT_XOR, ASSIGNMENT_OR)) != null) {
@@ -222,14 +220,20 @@ public class Parser {
             else
                 if (service.type == IF || service.type == WHILE){
                     isNeedSemicolon = false;
-                    e1 = new UnaryOpNode(service, parseLogicalCondition());
-                    conditions.push((UnaryOpNode) e1);
+                    UnaryOpNode unaryOpNode = new UnaryOpNode(service, parseLogicalCondition());
+                    conditions.push(unaryOpNode);
                     positions.push(pos);
+                    if (!valueToBoolean(unaryOpNode.operand.getValue())){
+                        skipBlock();
+                    }
+                    e1 = parse();
                 }
                     else
                         if (service.type == RBRACE){
                             isNeedSemicolon = false;
-                            e1 = new UnaryOpNode(service, null);
+                            UnaryOpNode unaryOpNode = new UnaryOpNode(service, null);
+                            checkBlockEnd(unaryOpNode);
+                            e1 = parse();
                         }
 
         if (isNeedSemicolon) {
@@ -238,9 +242,27 @@ public class Parser {
         return e1;
     }
 
+    private void checkBlockEnd(UnaryOpNode unaryOpNode){
+        if (conditions.size() == 0 || positions.size() == 0){
+            throw new ParserException("Лишняя закрывающая скобка", unaryOpNode.op);
+        }
+        if (conditions.peek().op.type == IF) {
+            conditions.pop();
+            positions.pop();
+        }
+        else
+        if (conditions.peek().op.type == WHILE){
+            if (conditions.peek().operand.getValue().equals(1))
+                pos = positions.peek();
+            else {
+                conditions.pop();
+                positions.pop();
+            }
+        }
+    }
+
     public ExprNode parseExpression() {
-        ExprNode e1 = parseAssignment();
-        return e1;
+        return parseAssignment();
     }
 
     public ExprNode parseLogicalCondition() {
@@ -263,33 +285,6 @@ public class Parser {
                         System.out.println(unaryOpNode.operand.getValue());
                         return null;
                     case NOT: return binaryUnsignedNOT(unaryOpNode.operand.getValue());
-                    case WHILE:
-                    case IF:
-                        if (Math.abs(unaryOpNode.operand.getValue()) > 0)
-                            return 1;
-                        else{
-                            skipBlock();
-                            return 0;
-                        }
-                    case RBRACE:
-                        if (conditions.size() == 0 || positions.size() == 0){
-                            throw new SemanticsException("Лишняя закрывающая скобка", unaryOpNode.op);
-                        }
-                        if (conditions.peek().op.type == IF) {
-                            conditions.pop();
-                            positions.pop();
-                            return null;
-                        }
-                        else
-                            if (conditions.peek().op.type == WHILE){
-                                if (conditions.peek().operand.getValue().equals(1))
-                                    pos = positions.peek();
-                                else {
-                                    conditions.pop();
-                                    positions.pop();
-                                }
-                                return null;
-                            }
                 }
             }
             else
@@ -380,25 +375,22 @@ public class Parser {
 
     private static int binaryUnsignedNOT(int number){
         String binary  = Integer.toBinaryString(number);
-        String sum = "";
+        StringBuilder sum = new StringBuilder();
         for (char ch : binary.toCharArray()){
             if (ch == '0')
-                sum += "1";
+                sum.append("1");
             else
-                sum += "0";
+                sum.append("0");
         }
         //System.out.println("СЛУЖЕБНОЕ: " + sum + "\n");
-        return Integer.parseInt(sum, 2);
+        return Integer.parseInt(sum.toString(), 2);
     }
 
     private static boolean valueToBoolean(Integer integer){
-        if (integer != null && Math.abs(integer) > 0)
-            return true;
-        else
-            return false;
+        return integer != null && integer != 0;
     }
 
-    public static void clear(){
+    public void clear(){
         intVariables.clear();
         conditions.clear();
         positions.clear();

@@ -33,6 +33,6 @@ public class Translator {
                 break;
             eval(node);
         }
-        Parser.clear();
+        p.clear();
     }
 }
