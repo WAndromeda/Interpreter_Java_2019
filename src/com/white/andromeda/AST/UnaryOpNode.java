@@ -6,11 +6,11 @@ import com.white.andromeda.Token;
 
 public class UnaryOpNode extends ExprNode {
 
-    public final Token op;
+    public final Token operation;
     public final ExprNode operand;
 
-    public UnaryOpNode(Token op, ExprNode operand) {
-        this.op = op;
+    public UnaryOpNode(Token operation, ExprNode operand) {
+        this.operation = operation;
         this.operand = operand;
     }
 
@@ -21,11 +21,11 @@ public class UnaryOpNode extends ExprNode {
 
     @Override
     public void setValue(Integer value){
-        throw new SemanticsException("Присвоить значение ОПЕРАЦИИ невозможно", op);
+        throw new SemanticsException("Присвоить значение ОПЕРАЦИИ невозможно", operation);
     }
 
     @Override
     public String toString() {
-        return op.text + " " + (operand == null ? "null" : operand.toString());
+        return operation.text + " " + (operand == null ? "null" : operand.toString());
     }
 }

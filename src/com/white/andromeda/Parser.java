@@ -20,7 +20,7 @@ public class Parser {
 
     public Parser(List<Token> tokens) {
         this.tokens = tokens;
-        this.tokens.removeIf(token -> token.type == TokenType.SPACE || token.type == TokenType.LINE || token.type == COMMENT);
+        this.tokens.removeIf(token -> token.type == TokenType.SPACE || token.type == TokenType.LINE || token.type == COMMENT || token.type == MULTI_COMMENT);
         intVariables = new Hashtable<>();
         conditions = new Stack<>();
         positions = new Stack<>();
@@ -71,7 +71,7 @@ public class Parser {
                     return pos;
                 }
         }
-        throw new ParserException("Ожидалось " + RBRACE + " для условия|цикла расположенного", conditions.pop().op);
+        throw new ParserException("Ожидалось " + RBRACE + " для условия|цикла расположенного", conditions.pop().operation);
     }
 
     private ExprNode parseElem() {
@@ -244,14 +244,14 @@ public class Parser {
 
     private void checkBlockEnd(UnaryOpNode unaryOpNode){
         if (conditions.size() == 0 || positions.size() == 0){
-            throw new ParserException("Лишняя закрывающая скобка", unaryOpNode.op);
+            throw new ParserException("Лишняя закрывающая скобка", unaryOpNode.operation);
         }
-        if (conditions.peek().op.type == IF) {
+        if (conditions.peek().operation.type == IF) {
             conditions.pop();
             positions.pop();
         }
         else
-        if (conditions.peek().op.type == WHILE){
+        if (conditions.peek().operation.type == WHILE){
             if (conditions.peek().operand.getValue().equals(1))
                 pos = positions.peek();
             else {
@@ -280,7 +280,7 @@ public class Parser {
         }else
             if (node instanceof UnaryOpNode){
                 UnaryOpNode unaryOpNode = (UnaryOpNode) node;
-                switch (unaryOpNode.op.type) {
+                switch (unaryOpNode.operation.type) {
                     case PRINT:
                         System.out.println(unaryOpNode.operand.getValue());
                         return null;
@@ -291,81 +291,82 @@ public class Parser {
                 if (node instanceof BinOpNode) {
                     BinOpNode binOp = (BinOpNode) node;
                     final String ifAssignError = "Недопустимое использование " + binOp.op.type + " к неинициализированной переменной\nВ выражении:  " + binOp + "\nВ строке: " + binOp.op.line + "\nВ позиции: " + binOp.op.pos;
+                    Integer left = binOp.left.getValue();
                     Integer right = binOp.right.getValue();
                     switch (binOp.op.type) {
-                        case ADD: return binOp.left.getValue() + right;
-                        case SUB: return binOp.left.getValue() - right;
-                        case MUL: return binOp.left.getValue() * right;
-                        case DIV: return binOp.left.getValue() / right;
-                        case XOR: return binOp.left.getValue() ^ right;
-                        case AND: return binOp.left.getValue() & right;
-                        case OR:  return binOp.left.getValue() | right;
+                        case ADD: return left + right;
+                        case SUB: return left - right;
+                        case MUL: return left * right;
+                        case DIV: return left / right;
+                        case XOR: return left ^ right;
+                        case AND: return left & right;
+                        case OR:  return left | right;
                         case EQUAL:
-                            if (binOp.left.getValue().equals(right) )  return 1;
+                            if (left.equals(right) )  return 1;
                             else   return 0;
                         case NEQUAL:
-                            if (!binOp.left.getValue().equals(right))    return 1;
+                            if (!left.equals(right) )    return 1;
                             else     return 0;
                         case LESS:
-                            if (binOp.left.getValue() < right)    return 1;
+                            if (left < right)    return 1;
                             else return 0;
                         case LESS_EQUAL:
-                            if (binOp.left.getValue() <= right)    return 1;
+                            if (left <= right)    return 1;
                             else return 0;
                         case GREATER:
-                            if (binOp.left.getValue() > right)  return 1;
+                            if (left > right)  return 1;
                             else  return 0;
                         case GREATER_EQUAL:
-                            if (binOp.left.getValue() >= right) return 1;
+                            if (left >= right) return 1;
                             else return 0;
                         case LAND:
-                            if (valueToBoolean(binOp.left.getValue()) && valueToBoolean(right)) return 1;
+                            if (valueToBoolean(left) && valueToBoolean(right)) return 1;
                             else return 0;
                         case LOR:
-                            if (valueToBoolean(binOp.left.getValue()) || valueToBoolean(right))  return 1;
+                            if (valueToBoolean(left) || valueToBoolean(right))  return 1;
                             else return 0;
                         case ASSIGNMENT:
                             Integer value = 1;
-                            if (binOp.left.getValue() == null)
+                            if (left == null)
                                 value = null;
                             binOp.left.setValue(right);
                             if (value != null)
                                 value = binOp.left.getValue();
                             return value;
                         case ASSIGNMENT_ADD:
-                            if (binOp.left.getValue() == null)
+                            if (left == null)
                                 throw new SemanticsException(ifAssignError);
-                            binOp.left.setValue(binOp.left.getValue() + right);
+                            binOp.left.setValue(left + right);
                             return binOp.left.getValue();
                         case ASSIGNMENT_SUB:
-                            if (binOp.left.getValue() == null)
+                            if (left == null)
                                 throw new SemanticsException(ifAssignError);
-                            binOp.left.setValue(binOp.left.getValue() - right);
+                            binOp.left.setValue(left - right);
                             return binOp.left.getValue();
                         case ASSIGNMENT_DIV:
-                            if (binOp.left.getValue() == null)
+                            if (left == null)
                                 throw new SemanticsException(ifAssignError);
-                            binOp.left.setValue(binOp.left.getValue() / right);
+                            binOp.left.setValue(left / right);
                             return binOp.left.getValue();
                         case ASSIGNMENT_MUL:
-                            if (binOp.left.getValue() == null)
+                            if (left == null)
                                 throw new SemanticsException(ifAssignError);
-                            binOp.left.setValue(binOp.left.getValue() * right);
+                            binOp.left.setValue(left * right);
                             return binOp.left.getValue();
                         case ASSIGNMENT_AND:
-                            if (binOp.left.getValue() == null)
+                            if (left == null)
                                 throw new SemanticsException(ifAssignError);
-                            binOp.left.setValue(binOp.left.getValue() & right);
+                            binOp.left.setValue(left & right);
                             return binOp.left.getValue();
                         case ASSIGNMENT_XOR:
-                            if (binOp.left.getValue() == null)
+                            if (left == null)
                                 throw new SemanticsException(ifAssignError);
-                            binOp.left.setValue(binOp.left.getValue() ^ right);
+                            binOp.left.setValue(left ^ right);
                             return binOp.left.getValue();
                         case ASSIGNMENT_OR:
-                            if (binOp.left.getValue() == null)
+                            if (left == null)
                                 throw new SemanticsException(ifAssignError);
-                            binOp.left.setValue(binOp.left.getValue() | right);
+                            binOp.left.setValue(left | right);
                             return binOp.left.getValue();
                     }
                 }

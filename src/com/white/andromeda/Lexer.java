@@ -58,7 +58,7 @@ public class Lexer {
     }
 
     public List<Token> lex(){
-        while(nextToken()){}
+        while(nextToken());
         if (!tokens.isEmpty())
             tokens.add(new Token(TokenType.LINE, "\n", 0, tokens.getLast().line));
         return tokens;

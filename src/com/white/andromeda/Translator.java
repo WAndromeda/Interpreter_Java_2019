@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.List;
-
 import static com.white.andromeda.Parser.eval;
 
 public class Translator {
@@ -25,7 +24,7 @@ public class Translator {
 
         Lexer l = new Lexer(code);
         List<Token> tokens = l.lex();
-        //System.out.println(tokens);
+        System.out.println(tokens);
         Parser p = new Parser(tokens);
         while(true) {
             ExprNode node = p.parse();
