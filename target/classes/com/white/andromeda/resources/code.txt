@@ -1,8 +1,14 @@
+a = 1;
+a += a = 5 + 5;
+print a;
+
+
+
 y = 1;
 y = y = 2 + y + 3;
 x = 1;
 print x;
-x += 1;f\
+x += 1;
 print x;
 print y;
 z = not (5 + (x = 5+

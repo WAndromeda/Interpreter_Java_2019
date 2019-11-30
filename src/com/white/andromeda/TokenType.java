@@ -4,10 +4,11 @@ import java.util.regex.Pattern;
 
 public enum TokenType{
 
-    MULTI_COMMENT   ("/\\*(.|[\\r\\n])*\\*/"),      // Многострочный комментарий
+    MULTI_COMMENT   ("/\\*(.|[\\r\\n])*\\*/"), // Многострочный комментарий TO DO
     COMMENT         ("//[^\\r\\n]+"),       // Однострочный комментарий
     NUMBER          ("[-]?[\\d]+"),         // Число
     IF              ("if"),                 // if условие
+    ELSE            ("else"),               // else от if условия
     WHILE           ("while"),              // while цикл
     XOR             ("xor|XOR"),            // Исключающее ИЛИ
     NOT             ("not|NOT"),            // Логическое отрицание
@@ -39,8 +40,8 @@ public enum TokenType{
     RPAR            ("\\)"),                // Правая скобка
     LBRACE          ("\\{"),                // Левая скобка
     RBRACE          ("\\}"),                // Правая скобка
-    LINE            ("[\\r]*[\\n]"),     // Перенос строки (служит разделителем команд)
-    SPACE           ("[ \\s\\t]+"),          // Пробел
+    LINE            ("[\\r]*[\\n]"),        // Перенос строки (служит разделителем команд)
+    SPACE           ("[ \\s\\t]+"),         // Пробел
     ASSIGNMENT      ("=");                  // Присваивание
 
     Pattern pattern;

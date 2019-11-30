@@ -1,6 +1,7 @@
 package com.white.andromeda;
 
 import com.white.andromeda.AST.ExprNode;
+import com.white.andromeda.AST.StmtNode;
 import org.apache.commons.io.IOUtils;
 import java.io.File;
 import java.io.FileInputStream;
@@ -24,10 +25,10 @@ public class Translator {
 
         Lexer l = new Lexer(code);
         List<Token> tokens = l.lex();
-        System.out.println(tokens);
+        //System.out.println(tokens);
         Parser p = new Parser(tokens);
         while(true) {
-            ExprNode node = p.parse();
+            StmtNode node = p.parse();
             if (node == null)
                 break;
             eval(node);

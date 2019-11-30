@@ -5,7 +5,7 @@ import java.util.Scanner;
 public class Main {
     public static void main(String[] args) throws Exception {
         Scanner scanner = new Scanner(System.in);
-        {
+        /*{
             int a = 5;
             System.out.println(5 + (a = 6));
             int x = 0, y = 0;
@@ -24,7 +24,7 @@ public class Main {
                     System.out.println("A_2 = " + a);
                 }
             }
-        }
+        }*/
         while(true){
             menu();
             int com = scanner.nextInt();

@@ -4,17 +4,16 @@ import com.white.andromeda.AST.*;
 import com.white.andromeda.Exception.ParserException;
 import com.white.andromeda.Exception.SemanticsException;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Stack;
 
 import static com.white.andromeda.TokenType.*;
 
 public class Parser {
     public static Hashtable<String, Integer> intVariables;
-    private Stack<UnaryOpNode> conditions;
-    private Stack<Integer> positions;
+
     private List<Token> tokens;
     private int pos = 0;
 
@@ -22,11 +21,10 @@ public class Parser {
         this.tokens = tokens;
         this.tokens.removeIf(token -> token.type == TokenType.SPACE || token.type == TokenType.LINE || token.type == COMMENT || token.type == MULTI_COMMENT);
         intVariables = new Hashtable<>();
-        conditions = new Stack<>();
-        positions = new Stack<>();
     }
 
-    private Parser() {}
+    private Parser() {
+    }
 
     private void error(String message) {
         if (pos < tokens.size()) {
@@ -55,25 +53,6 @@ public class Parser {
         return t;
     }
 
-    private Integer skipBlock(){
-        for (int i = positions.peek(); i < tokens.size(); i++){
-            if (tokens.get(i).type == IF || tokens.get(i).type == WHILE){
-                pos = i+1;
-                parseLogicalCondition();
-                conditions.push(new UnaryOpNode(tokens.get(i), null));
-                positions.push(pos);
-                i = skipBlock();
-            }else
-                if (tokens.get(i).type == RBRACE){
-                    pos = i+1;
-                    positions.pop();
-                    conditions.pop();
-                    return pos;
-                }
-        }
-        throw new ParserException("Ожидалось " + RBRACE + " для условия|цикла расположенного", conditions.pop().operation);
-    }
-
     private ExprNode parseElem() {
         Token num = match(TokenType.NUMBER);
         if (num != null)
@@ -95,7 +74,7 @@ public class Parser {
         }
     }
 
-    private ExprNode parseUnary(){
+    private ExprNode parseUnary() {
         Token unary = match(NOT);
         ExprNode e1 = parseParens();
         if (unary != null)
@@ -193,7 +172,7 @@ public class Parser {
         return e1;
     }
 
-    private ExprNode parseAssignment(){
+    private ExprNode parseAssignment() {
         ExprNode e1 = parseLogicalOr();
         Token op;
         while ((op = match(ASSIGNMENT, ASSIGNMENT_ADD, ASSIGNMENT_SUB, ASSIGNMENT_DIV, ASSIGNMENT_MUL, ASSIGNMENT_AND, ASSIGNMENT_XOR, ASSIGNMENT_OR)) != null) {
@@ -203,181 +182,220 @@ public class Parser {
         return e1;
     }
 
-    public ExprNode parse(){
+    private StmtNode parseStatement() {
+        StmtNode stmtNode = null;
+        Token token = require(PRINT, ID, IF, WHILE);
+        switch (token.type) {
+            case PRINT:
+                stmtNode = new PrintNode(new VarNode(require(ID)));
+                break;
+            case ID:
+                Token assign = require(ASSIGNMENT, ASSIGNMENT_ADD, ASSIGNMENT_SUB, ASSIGNMENT_DIV, ASSIGNMENT_MUL, ASSIGNMENT_AND, ASSIGNMENT_XOR, ASSIGNMENT_OR);
+                stmtNode =  new AssignmentNode(new VarNode(token), assign, parseExpression());
+                break;
+            case WHILE:
+                final ExprNode conditionWhile = parseLogicalCondition();
+                List<StmtNode> stmtNodesWhile = parseLogicalBody(token);
+                return new WhileNode(stmtNodesWhile, conditionWhile);
+            case IF:
+                final ExprNode conditionIf = parseLogicalCondition();
+                List<StmtNode> stmtNodesIf = parseLogicalBody(token);
+                if (match(ELSE) != null){
+                    List<StmtNode> stmtNodesElse = parseLogicalBody(token);
+                    return new IfElseNode(conditionIf, stmtNodesIf,  stmtNodesElse);
+                }else
+                    return new IfNode(conditionIf, stmtNodesIf);
+        }
+        require(SEMICOLON);
+        return stmtNode;
+    }
+
+    public StmtNode parse() {
         if (pos >= tokens.size())
             return null;
-        boolean isNeedSemicolon = true;
-        ExprNode e1 = null;
-        Token service = require(PRINT, ID, IF, WHILE, RBRACE);
-        if (service.type == PRINT)
-            e1 = new UnaryOpNode( service, new VarNode(require(ID)) );
-        else
-            if (service.type == ID) {
-                Token assign = require(ASSIGNMENT, ASSIGNMENT_ADD, ASSIGNMENT_SUB, ASSIGNMENT_DIV, ASSIGNMENT_MUL, ASSIGNMENT_AND, ASSIGNMENT_XOR, ASSIGNMENT_OR);
-                e1 = parseExpression();
-                e1 = new BinOpNode(assign, new VarNode(service), e1);
-            }
-            else
-                if (service.type == IF || service.type == WHILE){
-                    isNeedSemicolon = false;
-                    UnaryOpNode unaryOpNode = new UnaryOpNode(service, parseLogicalCondition());
-                    conditions.push(unaryOpNode);
-                    positions.push(pos);
-                    if (!valueToBoolean(unaryOpNode.operand.getValue())){
-                        skipBlock();
-                    }
-                    e1 = parse();
-                }
-                    else
-                        if (service.type == RBRACE){
-                            isNeedSemicolon = false;
-                            UnaryOpNode unaryOpNode = new UnaryOpNode(service, null);
-                            checkBlockEnd(unaryOpNode);
-                            e1 = parse();
-                        }
-
-        if (isNeedSemicolon) {
-            require(SEMICOLON);
-        }
-        return e1;
+        return parseStatement();
     }
 
-    private void checkBlockEnd(UnaryOpNode unaryOpNode){
-        if (conditions.size() == 0 || positions.size() == 0){
-            throw new ParserException("Лишняя закрывающая скобка", unaryOpNode.operation);
-        }
-        if (conditions.peek().operation.type == IF) {
-            conditions.pop();
-            positions.pop();
-        }
-        else
-        if (conditions.peek().operation.type == WHILE){
-            if (conditions.peek().operand.getValue().equals(1))
-                pos = positions.peek();
-            else {
-                conditions.pop();
-                positions.pop();
-            }
-        }
-    }
-
-    public ExprNode parseExpression() {
+    private ExprNode parseExpression() {
+        if (pos >= tokens.size())
+            return null;
         return parseAssignment();
     }
 
-    public ExprNode parseLogicalCondition() {
-        require(TokenType.LPAR);
+    private ExprNode parseLogicalCondition() {
+        require(LPAR);
         ExprNode e = parseExpression();
-        require(TokenType.RPAR);
-        require(LBRACE);
+        require(RPAR);
         return e;
     }
 
-    public static Integer eval(ExprNode node) {
-        //System.out.println("СЛУЖЕБНОЕ: " + node.toString());
-        if (node instanceof NumberNode || node instanceof VarNode) {
-            return node.getValue();
-        }else
-            if (node instanceof UnaryOpNode){
-                UnaryOpNode unaryOpNode = (UnaryOpNode) node;
-                switch (unaryOpNode.operation.type) {
-                    case PRINT:
-                        System.out.println(unaryOpNode.operand.getValue());
-                        return null;
-                    case NOT: return binaryUnsignedNOT(unaryOpNode.operand.getValue());
+    private List<StmtNode> parseLogicalBody(Token token){
+        List<StmtNode> stmtNodes = new ArrayList<>();
+        if (match(LBRACE) != null){
+            while (match(RBRACE) == null) {
+                StmtNode node = parse();
+                if (node == null) {
+                    throw new ParserException("Ожидалось " + RBRACE + " для цикла|условия", token);
                 }
+                stmtNodes.add(node);
             }
+        }else{
+            StmtNode node = parse();
+            if (node == null) {
+                throw new ParserException("Пустое тело цикла|условия", token);
+            }
+            stmtNodes.add(node);
+        }
+        return stmtNodes;
+    }
+
+    public static void eval(StmtNode node) {
+        //System.out.println("СЛУЖЕБНОЕ: " + node.toString());
+        if (node instanceof IfNode) {
+            IfNode ifNode = (IfNode) node;
+            if (valueToBoolean(ifNode.condition.getValue()))
+                for (StmtNode stmtNode : ifNode.ifStatements) {
+                    eval(stmtNode);
+                }
             else
-                if (node instanceof BinOpNode) {
-                    BinOpNode binOp = (BinOpNode) node;
-                    final String ifAssignError = "Недопустимое использование " + binOp.op.type + " к неинициализированной переменной\nВ выражении:  " + binOp + "\nВ строке: " + binOp.op.line + "\nВ позиции: " + binOp.op.pos;
-                    Integer left = binOp.left.getValue();
-                    Integer right = binOp.right.getValue();
-                    switch (binOp.op.type) {
-                        case ADD: return left + right;
-                        case SUB: return left - right;
-                        case MUL: return left * right;
-                        case DIV: return left / right;
-                        case XOR: return left ^ right;
-                        case AND: return left & right;
-                        case OR:  return left | right;
-                        case EQUAL:
-                            if (left.equals(right) )  return 1;
-                            else   return 0;
-                        case NEQUAL:
-                            if (!left.equals(right) )    return 1;
-                            else     return 0;
-                        case LESS:
-                            if (left < right)    return 1;
-                            else return 0;
-                        case LESS_EQUAL:
-                            if (left <= right)    return 1;
-                            else return 0;
-                        case GREATER:
-                            if (left > right)  return 1;
-                            else  return 0;
-                        case GREATER_EQUAL:
-                            if (left >= right) return 1;
-                            else return 0;
-                        case LAND:
-                            if (valueToBoolean(left) && valueToBoolean(right)) return 1;
-                            else return 0;
-                        case LOR:
-                            if (valueToBoolean(left) || valueToBoolean(right))  return 1;
-                            else return 0;
-                        case ASSIGNMENT:
-                            Integer value = 1;
-                            if (left == null)
-                                value = null;
-                            binOp.left.setValue(right);
-                            if (value != null)
-                                value = binOp.left.getValue();
-                            return value;
-                        case ASSIGNMENT_ADD:
-                            if (left == null)
-                                throw new SemanticsException(ifAssignError);
-                            binOp.left.setValue(left + right);
-                            return binOp.left.getValue();
-                        case ASSIGNMENT_SUB:
-                            if (left == null)
-                                throw new SemanticsException(ifAssignError);
-                            binOp.left.setValue(left - right);
-                            return binOp.left.getValue();
-                        case ASSIGNMENT_DIV:
-                            if (left == null)
-                                throw new SemanticsException(ifAssignError);
-                            binOp.left.setValue(left / right);
-                            return binOp.left.getValue();
-                        case ASSIGNMENT_MUL:
-                            if (left == null)
-                                throw new SemanticsException(ifAssignError);
-                            binOp.left.setValue(left * right);
-                            return binOp.left.getValue();
-                        case ASSIGNMENT_AND:
-                            if (left == null)
-                                throw new SemanticsException(ifAssignError);
-                            binOp.left.setValue(left & right);
-                            return binOp.left.getValue();
-                        case ASSIGNMENT_XOR:
-                            if (left == null)
-                                throw new SemanticsException(ifAssignError);
-                            binOp.left.setValue(left ^ right);
-                            return binOp.left.getValue();
-                        case ASSIGNMENT_OR:
-                            if (left == null)
-                                throw new SemanticsException(ifAssignError);
-                            binOp.left.setValue(left | right);
-                            return binOp.left.getValue();
+                if (node instanceof IfElseNode) {
+                    IfElseNode ifElseNode = (IfElseNode) node;
+                    for (StmtNode stmtNode : ifElseNode.elseStatements) {
+                        eval(stmtNode);
                     }
                 }
+            return;
+        }else if (node instanceof WhileNode) {
+            WhileNode whileNode = (WhileNode) node;
+            while (valueToBoolean(whileNode.condition.getValue())){
+                for (StmtNode stmtNode : whileNode.statements){
+                    eval(stmtNode);
+                }
+            }
+            return;
+        }else if (node instanceof AssignmentNode) {
+            AssignmentNode assignNode = (AssignmentNode) node;
+            Integer left = assignNode.id.getValue();
+            Integer right = assignNode.expr.getValue();
+            if (assignNode.assign.type == ASSIGNMENT){
+                assignNode.id.setValue(right);
+                return;
+            }else {
+                Integer num = executeSpecialAssignments(left, right, assignNode.assign, assignNode);
+                if (num != null) {
+                    assignNode.id.setValue(num);
+                    return;
+                }
+            }
+        }else if (node instanceof PrintNode) {
+            PrintNode printNode = (PrintNode) node;
+            System.out.println(printNode.var.getValue());
+            return;
+        }
         throw new IllegalStateException(node.toString());
     }
 
+    public static Integer evalExpr(ExprNode node){
+        //System.out.println("СЛУЖЕБНОЕ: " + node.toString());
+        if (node instanceof NumberNode || node instanceof VarNode){
+            return node.getValue();
+        }else if (node instanceof UnaryOpNode) {
+            UnaryOpNode unaryOpNode = (UnaryOpNode) node;
+            switch (unaryOpNode.operation.type) {
+                case NOT:
+                    return binaryUnsignedNOT(unaryOpNode.operand.getValue());
+            }
+        } else if (node instanceof BinOpNode) {
+            BinOpNode binOp = (BinOpNode) node;
+            Integer left = binOp.left.getValue();
+            Integer right = binOp.right.getValue();
+            switch (binOp.op.type) {
+                case ADD:
+                    return left + right;
+                case SUB:
+                    return left - right;
+                case MUL:
+                    return left * right;
+                case DIV:
+                    return left / right;
+                case XOR:
+                    return left ^ right;
+                case AND:
+                    return left & right;
+                case OR:
+                    return left | right;
+                case EQUAL:
+                    if (left.equals(right)) return 1;
+                    else return 0;
+                case NEQUAL:
+                    if (!left.equals(right)) return 1;
+                    else return 0;
+                case LESS:
+                    if (left < right) return 1;
+                    else return 0;
+                case LESS_EQUAL:
+                    if (left <= right) return 1;
+                    else return 0;
+                case GREATER:
+                    if (left > right) return 1;
+                    else return 0;
+                case GREATER_EQUAL:
+                    if (left >= right) return 1;
+                    else return 0;
+                case LAND:
+                    if (valueToBoolean(left) && valueToBoolean(right)) return 1;
+                    else return 0;
+                case LOR:
+                    if (valueToBoolean(left) || valueToBoolean(right)) return 1;
+                    else return 0;
+                case ASSIGNMENT:
+                    Integer value = 1;
+                    if (left == null)
+                        value = null;
+                    binOp.left.setValue(right);
+                    if (value != null)
+                        value = binOp.left.getValue();
+                    return value;
+                default:
+                    Integer num = executeSpecialAssignments(left, right, binOp.op, binOp);
+                    if (num != null) {
+                        binOp.left.setValue(right);
+                        return num;
+                    }
 
-    private static int binaryUnsignedNOT(int number){
-        String binary  = Integer.toBinaryString(number);
+            }
+        }
+        throw new IllegalStateException(node.toString());
+    }
+
+    private static Integer executeSpecialAssignments(Integer left, Integer right, Token operation, Node node){
+        final String ifAssignError = "Недопустимое использование " + operation.type + " к неинициализированной переменной\nВ выражении:  " + node + "\nВ строке: " + operation.line + "\nВ позиции: " + operation.pos;
+        if (left == null)
+            throw new SemanticsException(ifAssignError);
+        switch (operation.type) {
+            case ASSIGNMENT_ADD:
+                return left + right;
+            case ASSIGNMENT_SUB:
+                return left - right;
+            case ASSIGNMENT_DIV:
+                return left / right;
+            case ASSIGNMENT_MUL:
+                return left * right;
+            case ASSIGNMENT_AND:
+                return left & right;
+            case ASSIGNMENT_XOR:
+                return left ^ right;
+            case ASSIGNMENT_OR:
+                return left | right;
+            default:
+                return null;
+        }
+    }
+
+    private static int binaryUnsignedNOT(int number) {
+        String binary = Integer.toBinaryString(number);
         StringBuilder sum = new StringBuilder();
-        for (char ch : binary.toCharArray()){
+        for (char ch : binary.toCharArray()) {
             if (ch == '0')
                 sum.append("1");
             else
@@ -387,14 +405,12 @@ public class Parser {
         return Integer.parseInt(sum.toString(), 2);
     }
 
-    private static boolean valueToBoolean(Integer integer){
+    private static boolean valueToBoolean(Integer integer) {
         return integer != null && integer != 0;
     }
 
-    public void clear(){
+    public void clear() {
         intVariables.clear();
-        conditions.clear();
-        positions.clear();
         tokens.clear();
         pos = 0;
     }

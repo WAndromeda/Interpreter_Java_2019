@@ -18,7 +18,7 @@ public class BinOpNode extends ExprNode {
 
     @Override
     public Integer getValue(){
-        return Parser.eval(this);
+        return Parser.evalExpr(this);
     }
 
     @Override

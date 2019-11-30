@@ -1,6 +1,6 @@
 package com.white.andromeda.AST;
 
-public abstract class ExprNode {
+public abstract class ExprNode extends Node{
 
     public Integer getValue(){
         throw new RuntimeException("Получение значения у абстрактного узла невозможно");
