@@ -3,8 +3,7 @@ package com.white.andromeda;
 import java.util.regex.Pattern;
 
 public enum TokenType{
-
-    MULTI_COMMENT   ("/\\*(.|[\\r\\n])*\\*/"), // Многострочный комментарий TO DO
+    MULTI_COMMENT   ("/\\*([^*]|(\\*+([^*/])))*\\*+/"), // Многострочный комментарий
     COMMENT         ("//[^\\r\\n]+"),       // Однострочный комментарий
     NUMBER          ("[-]?[\\d]+"),         // Число
     IF              ("if"),                 // if условие
@@ -41,7 +40,7 @@ public enum TokenType{
     LBRACE          ("\\{"),                // Левая скобка
     RBRACE          ("\\}"),                // Правая скобка
     LINE            ("[\\r]*[\\n]"),        // Перенос строки (служит разделителем команд)
-    SPACE           ("[ \\s\\t]+"),         // Пробел
+    SPACE           ("[ \\s\\t\\v]+"),         // Пробел
     ASSIGNMENT      ("=");                  // Присваивание
 
     Pattern pattern;
