@@ -13,4 +13,9 @@ public class AssignmentNode extends StmtNode {
         this.assign = assign;
         this.expr = expr;
     }
+
+    @Override
+    public String toString(){
+        return  id.id.text + " " + assign.text + " " + expr.toString();
+    }
 }

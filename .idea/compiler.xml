@@ -10,7 +10,7 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="Interpreter_Java_2019" target="8" />
+      <module name="Interpreter_Java_2019" target="13" />
     </bytecodeTargetLevel>
   </component>
 </project>

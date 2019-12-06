@@ -11,7 +11,7 @@ import static com.white.andromeda.Parser.eval;
 
 public class Translator {
 
-    public static void translate(String path) throws IOException {
+    public static void translate(String path) throws IOException, InterruptedException {
         String code = "";
         File file = new File(path);
         FileInputStream inputStream = new FileInputStream(file);

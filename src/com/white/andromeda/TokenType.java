@@ -6,6 +6,7 @@ public enum TokenType{
     MULTI_COMMENT   ("/\\*([^*]|(\\*+([^*/])))*\\*+/"), // Многострочный комментарий
     COMMENT         ("//[^\\r\\n]+"),       // Однострочный комментарий
     NUMBER          ("[-]?[\\d]+"),         // Число
+    FOR             ("for"),                // for цикл
     IF              ("if"),                 // if условие
     ELSE            ("else"),               // else от if условия
     WHILE           ("while"),              // while цикл

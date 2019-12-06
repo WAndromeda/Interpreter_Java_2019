@@ -184,28 +184,40 @@ public class Parser {
 
     private StmtNode parseStatement() {
         StmtNode stmtNode = null;
-        Token token = require(PRINT, ID, IF, WHILE);
-        switch (token.type) {
-            case PRINT:
-                stmtNode = new PrintNode(new VarNode(require(ID)));
-                break;
-            case ID:
-                Token assign = require(ASSIGNMENT, ASSIGNMENT_ADD, ASSIGNMENT_SUB, ASSIGNMENT_DIV, ASSIGNMENT_MUL, ASSIGNMENT_AND, ASSIGNMENT_XOR, ASSIGNMENT_OR);
-                stmtNode =  new AssignmentNode(new VarNode(token), assign, parseExpression());
-                break;
-            case WHILE:
-                final ExprNode conditionWhile = parseLogicalCondition();
-                List<StmtNode> stmtNodesWhile = parseLogicalBody(token);
-                return new WhileNode(stmtNodesWhile, conditionWhile);
-            case IF:
-                final ExprNode conditionIf = parseLogicalCondition();
-                List<StmtNode> stmtNodesIf = parseLogicalBody(token);
-                if (match(ELSE) != null){
-                    List<StmtNode> stmtNodesElse = parseLogicalBody(token);
-                    return new IfElseNode(conditionIf, stmtNodesIf,  stmtNodesElse);
-                }else
-                    return new IfNode(conditionIf, stmtNodesIf);
-        }
+        Token token = match(PRINT, ID, IF, WHILE, FOR);
+        if (token != null)
+            switch (token.type) {
+                case PRINT:
+                    stmtNode = new PrintNode(new VarNode(require(ID)));
+                    break;
+                case ID:
+                    Token assign = require(ASSIGNMENT, ASSIGNMENT_ADD, ASSIGNMENT_SUB, ASSIGNMENT_DIV, ASSIGNMENT_MUL, ASSIGNMENT_AND, ASSIGNMENT_XOR, ASSIGNMENT_OR);
+                    stmtNode =  new AssignmentNode(new VarNode(token), assign, parseExpression());
+                    break;
+                case WHILE:
+                    final ExprNode conditionWhile = parseLogicalCondition();
+                    List<StmtNode> stmtNodesWhile = parseLogicalBody(token);
+                    return new WhileNode(stmtNodesWhile, conditionWhile);
+                case FOR:
+                    require(LPAR);
+                    final StmtNode assignLeft = parse();
+                    final ExprNode conditionMiddle = parseExpression();  require(SEMICOLON);
+                    final ExprNode operationRight = parseExpression();
+                    require(RPAR);
+                    if (assignLeft == null && pos >= tokens.size()) throw new ParserException("Отсутствует первая часть цикла FOR");
+                    if (conditionMiddle == null)  throw new ParserException("Отсутствует условие в середине цикла FOR");
+                    if (operationRight == null && pos >= tokens.size())  throw new ParserException("Отсутствует третья часть цикла FOR");
+                    List<StmtNode> stmtNodesFor = parseLogicalBody(token);
+                    return new ForNode(stmtNodesFor, assignLeft, conditionMiddle, operationRight);
+                case IF:
+                    final ExprNode conditionIf = parseLogicalCondition();
+                    List<StmtNode> stmtNodesIf = parseLogicalBody(token);
+                    if (match(ELSE) != null){
+                        List<StmtNode> stmtNodesElse = parseLogicalBody(token);
+                        return new IfElseNode(conditionIf, stmtNodesIf,  stmtNodesElse);
+                    }else
+                        return new IfNode(conditionIf, stmtNodesIf);
+            }
         require(SEMICOLON);
         return stmtNode;
     }
@@ -249,7 +261,7 @@ public class Parser {
         return stmtNodes;
     }
 
-    public static void eval(StmtNode node) {
+    public static void eval(StmtNode node) throws InterruptedException {
         //System.out.println("СЛУЖЕБНОЕ: " + node.toString());
         if (node instanceof IfNode) {
             IfNode ifNode = (IfNode) node;
@@ -267,8 +279,16 @@ public class Parser {
             return;
         }else if (node instanceof WhileNode) {
             WhileNode whileNode = (WhileNode) node;
-            while (valueToBoolean(whileNode.condition.getValue())){
-                for (StmtNode stmtNode : whileNode.statements){
+            while (valueToBoolean(whileNode.condition.getValue())) {
+                for (StmtNode stmtNode : whileNode.statements) {
+                    eval(stmtNode);
+                }
+            }
+            return;
+        }else if (node instanceof ForNode) {
+            ForNode forNode = (ForNode) node;
+            for (eval(forNode.stmtNodeLeft); valueToBoolean(forNode.conditionMiddle.getValue()); evalExpr(forNode.operationRight)){
+                for (StmtNode stmtNode : forNode.statements){
                     eval(stmtNode);
                 }
             }
@@ -359,7 +379,7 @@ public class Parser {
                 default:
                     Integer num = executeSpecialAssignments(left, right, binOp.op, binOp);
                     if (num != null) {
-                        binOp.left.setValue(right);
+                        binOp.left.setValue(num);
                         return num;
                     }
 
