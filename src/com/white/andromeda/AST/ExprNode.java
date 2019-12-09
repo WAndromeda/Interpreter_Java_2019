@@ -1,10 +1,10 @@
 package com.white.andromeda.AST;
 
-public abstract class ExprNode extends Node{
+import java.util.List;
+import java.util.Map;
 
-    public Integer getValue(){
-        throw new RuntimeException("Получение значения у абстрактного узла невозможно");
-    }
-    public void setValue(Integer value){throw new RuntimeException("Установкая значения у абстрактного узла невозможно");}
+public abstract class ExprNode {
+
+    public abstract int getValue(List<Map<String, Integer>> variablesMap);
 
 }

@@ -1,20 +1,18 @@
 package com.white.andromeda.AST;
 
-import java.util.List;
-
 public class IfNode extends StmtNode {
 
-    public final List<StmtNode> ifStatements;
+    public final StmtNode ifStatement;
     public final ExprNode condition;
 
-    public IfNode(ExprNode condition, List<StmtNode> ifStatements) {
-        this.ifStatements = ifStatements;
+    public IfNode(ExprNode condition, StmtNode ifStatement) {
+        this.ifStatement = ifStatement;
         this.condition = condition;
     }
 
     @Override
     public String toString() {
-        return "if ( " + condition.toString() +  " )\n" + ifStatements.toString();
+        return "if ( " + condition.toString() +  " )\n" + ifStatement.toString();
     }
 
 }

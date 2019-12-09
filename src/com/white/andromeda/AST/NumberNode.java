@@ -1,7 +1,9 @@
 package com.white.andromeda.AST;
 
-import com.white.andromeda.Exception.SemanticsException;
 import com.white.andromeda.Token;
+
+import java.util.List;
+import java.util.Map;
 
 public class NumberNode extends ExprNode{
 
@@ -12,15 +14,9 @@ public class NumberNode extends ExprNode{
     }
 
     @Override
-    public Integer getValue(){
+    public int getValue(List<Map<String, Integer>> variablesMap){
         return Integer.parseInt(number.text);
     }
-
-    @Override
-    public void setValue(final Integer value){
-        throw new SemanticsException("Присвоение значения КОНСТАНТЕ невозможно", number);
-    }
-
 
     @Override
     public String toString() {

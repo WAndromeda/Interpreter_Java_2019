@@ -8,6 +8,6 @@ public class LexerException extends  RuntimeException{
     }
 
     public LexerException(String message, Token token){
-        super(message + "\nВ строке: " + token.line + "\nВ позиции: " + token.pos);
+        super(message + "\nВ строке: " + token.line + "\nВ позиции: " + token.colon);
     }
 }

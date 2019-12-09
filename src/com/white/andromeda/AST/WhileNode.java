@@ -1,19 +1,17 @@
 package com.white.andromeda.AST;
 
-import java.util.List;
-
 public class WhileNode extends StmtNode {
 
-    public final List<StmtNode> statements;
+    public final StmtNode statement;
     public final ExprNode condition;
 
-    public WhileNode(List<StmtNode> statements, ExprNode condition) {
-        this.statements = statements;
+    public WhileNode(StmtNode statement, ExprNode condition) {
+        this.statement = statement;
         this.condition = condition;
     }
 
     @Override
     public String toString() {
-        return "while ( " + condition.toString() +  " )\n" + statements.toString();
+        return "while ( " + condition.toString() +  " )\n" + statement.toString();
     }
 }

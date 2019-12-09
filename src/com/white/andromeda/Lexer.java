@@ -2,39 +2,24 @@ package com.white.andromeda;
 
 import com.white.andromeda.Exception.LexerException;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 
 public class Lexer {
 
     private String src;                 // Весь исходной код программы
-    private int pos;                    // Позиция в строке (линии), на котороый находится программа на этапе анализа
+    private int pos;                    // Конечная позиция разбора на n-ой итерации
+    private int colon;                  // Колонка, которая увеличивается на на размер лексемы, в конце строки сбраывается на 1
     private int line;                   // Строка (линия), на которой находился анализатор
-    private LinkedList<Token> tokens;   // Список токенов исходного текста @src
+    private ArrayList<Token> tokens;    // Список токенов исходного текста @src
 
-    public Lexer() {
-        src = "";
-        pos = 0;
-        line = 1;
-        tokens = new LinkedList<>();
-    }
-
-    public Lexer(String src) {
+      public Lexer(String src) {
         this.src = src;
         pos = 0;
+        colon = 1;
         line = 1;
-        tokens = new LinkedList<>();
-    }
-
-    private int sumPreviousPos(){
-        int sum = 0;
-        for (Token token : tokens){
-            if (token.type == TokenType.LINE){
-                sum += token.pos + 2;
-            }
-        }
-        return sum;
+        tokens = new ArrayList<>();
     }
 
     private boolean nextToken(){
@@ -45,10 +30,12 @@ public class Lexer {
                 Matcher m = tt.pattern.matcher(src);
                 m.region(pos, src.length());
                 if (m.lookingAt()){
-                    tokens.add(new Token(tt, m.group(), pos - sumPreviousPos(), line));
+                    String tokenText = m.group();
+                    tokens.add(new Token(tt, tokenText, colon, line));
                     if (tt == TokenType.LINE) {
                         line++;
-                    }
+                        colon = 1;
+                    }else  colon += tokenText.length();
                     pos = m.end();
                     return true;
                 }
@@ -59,19 +46,7 @@ public class Lexer {
 
     public List<Token> lex(){
         while(nextToken());
-        if (!tokens.isEmpty())
-            tokens.add(new Token(TokenType.LINE, "\n", 0, tokens.getLast().line));
         return tokens;
-    }
-
-    public void setSrc(String src){
-        this.src = src.toUpperCase();
-    }
-
-    public void clear(){
-        src = "";
-        tokens.clear();
-        pos = 0;
     }
 
 }

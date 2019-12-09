@@ -1,16 +1,14 @@
 package com.white.andromeda.AST;
 
-import java.util.List;
-
 public class ForNode extends StmtNode {
 
-    public final List<StmtNode> statements;
+    public final StmtNode statement;
     public final StmtNode stmtNodeLeft;
     public final ExprNode conditionMiddle;
-    public final ExprNode operationRight;
+    public final ExprStmtNode operationRight;
 
-    public ForNode(List<StmtNode> statements, StmtNode stmtNodeLeft, ExprNode conditionMiddle, ExprNode operationRight) {
-        this.statements = statements;
+    public ForNode(StmtNode statement, StmtNode stmtNodeLeft, ExprNode conditionMiddle, ExprStmtNode operationRight) {
+        this.statement = statement;
         this.stmtNodeLeft = stmtNodeLeft;
         this.conditionMiddle = conditionMiddle;
         this.operationRight = operationRight;
@@ -19,6 +17,6 @@ public class ForNode extends StmtNode {
 
     @Override
     public String toString() {
-        return "for ( "+ stmtNodeLeft +";" + conditionMiddle.toString() +  "; "+ operationRight.toString() +" )\n" + statements.toString();
+        return "for ( "+ stmtNodeLeft +";" + conditionMiddle.toString() +  "; "+ operationRight.toString() +" )\n" + statement.toString();
     }
 }

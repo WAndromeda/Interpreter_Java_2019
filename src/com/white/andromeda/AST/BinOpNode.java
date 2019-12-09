@@ -1,8 +1,10 @@
 package com.white.andromeda.AST;
 
-import com.white.andromeda.Exception.SemanticsException;
-import com.white.andromeda.Parser;
+import com.white.andromeda.Executor;
 import com.white.andromeda.Token;
+
+import java.util.List;
+import java.util.Map;
 
 public class BinOpNode extends ExprNode {
 
@@ -17,13 +19,8 @@ public class BinOpNode extends ExprNode {
     }
 
     @Override
-    public Integer getValue(){
-        return Parser.evalExpr(this);
-    }
-
-    @Override
-    public void setValue(Integer value){
-        throw new SemanticsException("Присвоить значение ОПЕРАЦИИ невозможно", op);
+    public int getValue(List<Map<String, Integer>> variables){
+        return Executor.evalExpr(this, variables);
     }
 
     @Override
