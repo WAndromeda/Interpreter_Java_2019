@@ -3,6 +3,8 @@ package com.white.andromeda.AST;
 import com.white.andromeda.Exception.SemanticsException;
 import com.white.andromeda.Token;
 
+import java.util.ArrayDeque;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -15,21 +17,25 @@ public class VarNode extends ExprNode{
     }
 
     @Override
-    public int getValue(List<Map<String, Integer>> variablesMapList){
-        for (int i = variablesMapList.size()-1; i >= 0; i--)
-            if (variablesMapList.get(i).get(id.text) != null)
-                return variablesMapList.get(i).get(id.text);
+    public int getValue(ArrayDeque<Map<String, Integer>> variablesMapList){
+        for (Iterator<Map<String, Integer>> it = variablesMapList.iterator(); it.hasNext();) {
+            Map<String, Integer> level = it.next();
+            if (level.get(id.text) != null)
+                return level.get(id.text);
+        }
         throw new SemanticsException("Переменная " + id.text + " не инициализирована", id);
 
     }
 
-    public void setValue(final Integer value, List<Map<String, Integer>> variablesMapList){
-        for (int i = variablesMapList.size()-1; i >= 0; i--)
-            if (variablesMapList.get(i).get(id.text) != null) {
-                variablesMapList.get(i).put(id.text, value);
+    public void setValue(final Integer value, ArrayDeque<Map<String, Integer>> variablesMapDeque){
+        for (Iterator<Map<String, Integer>> it = variablesMapDeque.iterator(); it.hasNext();) {
+            Map<String, Integer> level = it.next();
+            if (level.get(id.text) != null) {
+                level.put(id.text, value);
                 return;
             }
-        variablesMapList.get(variablesMapList.size()-1).put(id.text, value);
+        }
+        variablesMapDeque.getLast().put(id.text, value);
     }
 
     @Override

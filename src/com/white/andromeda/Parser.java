@@ -69,10 +69,13 @@ public class Parser {
 
     private ExprNode parseUnary() {
         Token unaryNot = match(NOT);
+        Token unarySub = match(SUB);
         ExprNode e1 = parseParens();
         Token unaryPostIncDec = match(INC, DEC);
         if (unaryPostIncDec != null)
             e1 = new UnaryOpNode(unaryPostIncDec, e1);
+        if (unarySub != null)
+            e1 = new UnaryOpNode(unarySub, e1);
         if (unaryNot != null)
             e1 = new UnaryOpNode(unaryNot, e1);
         return e1;
@@ -197,9 +200,6 @@ public class Parser {
                     require(SEMICOLON);
                     final ExprStmtNode operationRight = parseExprStmtNode();
                     require(RPAR);
-                    if (assignLeft == null && pos >= tokens.size())
-                        throw new ParserException("Отсутствует первая часть цикла FOR");
-                    if (conditionMiddle == null) throw new ParserException("Отсутствует условие в середине цикла FOR");
                     StmtNode stmtNodeFor = parseStatement();
                     return new ForNode(stmtNodeFor, assignLeft, conditionMiddle, operationRight);
                 case IF:
@@ -230,12 +230,6 @@ public class Parser {
         return stmtNode;
     }
 
-    public StmtNode parse() {
-        if (pos >= tokens.size())
-            return null;
-        return parseStatement();
-    }
-
     private ExprStmtNode parseExprStmtNode(){
         ArrayList<ExprNode> exprNodes = new ArrayList<>();
         do {
@@ -249,9 +243,8 @@ public class Parser {
 
     public List<StmtNode> parseProgram(){
         ArrayList<StmtNode> stmtNodeArrayList = new ArrayList<>();
-        StmtNode stmtNode;
-        while ( (stmtNode = parse()) != null)
-            stmtNodeArrayList.add(stmtNode);
+        while ( pos < tokens.size())
+            stmtNodeArrayList.add(parseStatement());
         return stmtNodeArrayList;
     }
 

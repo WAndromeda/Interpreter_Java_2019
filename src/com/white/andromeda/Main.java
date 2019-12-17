@@ -5,27 +5,6 @@ import java.util.Scanner;
 public class Main {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-
-        /*{
-            int a = 5;
-            System.out.println(5 + (a = 6));
-            int x = 0, y = 0;
-            a = a = 5 + 2 + a;
-            a = ~(a = 5 +
-                    ~(
-                            x & y
-                    )
-                    & ~0
-            );
-            {
-                a = 1;
-                a += a = 5 + 5;
-                System.out.println("A = " + a);
-                if ( (a = 2) < (a = 1)){
-                    System.out.println("A_2 = " + a);
-                }
-            }
-        }*/
         while(true){
             menu();
             int com = scanner.nextInt();

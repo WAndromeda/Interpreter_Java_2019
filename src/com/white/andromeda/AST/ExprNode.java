@@ -1,10 +1,10 @@
 package com.white.andromeda.AST;
 
-import java.util.List;
+import java.util.ArrayDeque;
 import java.util.Map;
 
 public abstract class ExprNode {
 
-    public abstract int getValue(List<Map<String, Integer>> variablesMap);
+    public abstract int getValue(ArrayDeque<Map<String, Integer>> variablesMap);
 
 }

@@ -2,7 +2,7 @@ package com.white.andromeda.AST;
 
 import com.white.andromeda.Token;
 
-import java.util.List;
+import java.util.ArrayDeque;
 import java.util.Map;
 
 public class NumberNode extends ExprNode{
@@ -14,7 +14,7 @@ public class NumberNode extends ExprNode{
     }
 
     @Override
-    public int getValue(List<Map<String, Integer>> variablesMap){
+    public int getValue(ArrayDeque<Map<String, Integer>> variablesMap){
         return Integer.parseInt(number.text);
     }
 

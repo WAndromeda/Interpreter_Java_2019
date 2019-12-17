@@ -3,7 +3,7 @@ package com.white.andromeda.AST;
 import com.white.andromeda.Executor;
 import com.white.andromeda.Token;
 
-import java.util.List;
+import java.util.ArrayDeque;
 import java.util.Map;
 
 public class UnaryOpNode extends ExprNode {
@@ -17,7 +17,7 @@ public class UnaryOpNode extends ExprNode {
     }
 
     @Override
-    public int getValue(List<Map<String, Integer>> variables){
+    public int getValue(ArrayDeque<Map<String, Integer>> variables){
         return Executor.evalExpr(this, variables);
     }
 

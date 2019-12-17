@@ -3,115 +3,115 @@ package com.white.andromeda;
 import com.white.andromeda.AST.*;
 import com.white.andromeda.Exception.SemanticsException;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.white.andromeda.TokenType.ASSIGNMENT;
 
 public class Executor {
 
-    //public static HashMap<String, Integer> intVariables = new HashMap<>();
-
     public static void executeAProgram(ArrayList<StmtNode> stmtNodes){
         stmtNodes.removeIf(stmtNode -> stmtNode instanceof EmptyNode);
-        List<Map<String, Integer>> variablesMapList = new ArrayList<>();
-        variablesMapList.add(new HashMap<>());
+        ArrayDeque<Map<String, Integer>> variablesMapDeque = new ArrayDeque<>();
+        variablesMapDeque.push(new HashMap<>());
         for (StmtNode stmtNode : stmtNodes)
-            eval(stmtNode, variablesMapList);
+            eval(stmtNode, variablesMapDeque);
     }
 
-    public static void eval(StmtNode node, List<Map<String, Integer>> variablesMapList) {
+    public static void eval(StmtNode node, ArrayDeque<Map<String, Integer>> variablesMapDeque) {
         //System.out.println("СЛУЖЕБНОЕ: " + node.toString());
         if (node instanceof EmptyNode) {
             return;
         }else if (node instanceof BlockStatement) {
             BlockStatement blockStatement = (BlockStatement) node;
-            variablesMapList.add(new HashMap<>());
+            variablesMapDeque.push(new HashMap<>());
             for (StmtNode stmtNode : blockStatement.statements)
-                eval(stmtNode, variablesMapList);
-            variablesMapList.remove(variablesMapList.size()-1);
+                eval(stmtNode, variablesMapDeque);
+            variablesMapDeque.pop();
             return;
         }
         else if (node instanceof IfNode) {
             IfNode ifNode = (IfNode) node;
-            variablesMapList.add(new HashMap<>());
-            if (valueToBoolean(ifNode.condition.getValue(variablesMapList)))
-                eval(ifNode.ifStatement, variablesMapList);
+            variablesMapDeque.push(new HashMap<>());
+            if (valueToBoolean(ifNode.condition.getValue(variablesMapDeque)))
+                eval(ifNode.ifStatement, variablesMapDeque);
             else
                 if (node instanceof IfElseNode) {
                     IfElseNode ifElseNode = (IfElseNode) node;
-                    eval(ifElseNode.elseStatement, variablesMapList);
+                    eval(ifElseNode.elseStatement, variablesMapDeque);
                 }
-            variablesMapList.remove(variablesMapList.size()-1);
+            variablesMapDeque.pop();
             return;
         }else if (node instanceof WhileNode) {
             WhileNode whileNode = (WhileNode) node;
-            variablesMapList.add(new HashMap<>());
-            while (valueToBoolean(whileNode.condition.getValue(variablesMapList))) {
-                eval(whileNode.statement, variablesMapList);
+            variablesMapDeque.push(new HashMap<>());
+            while (valueToBoolean(whileNode.condition.getValue(variablesMapDeque))) {
+                eval(whileNode.statement, variablesMapDeque);
             }
-            variablesMapList.remove(variablesMapList.size()-1);
+            variablesMapDeque.pop();
             return;
         }else if (node instanceof ForNode) {
             ForNode forNode = (ForNode) node;
-            variablesMapList.add(new HashMap<>());
-            for (eval(forNode.stmtNodeLeft, variablesMapList); valueToBoolean(forNode.conditionMiddle.getValue(variablesMapList)); eval(forNode.operationRight, variablesMapList))
-                eval(forNode.statement, variablesMapList);
-            variablesMapList.remove(variablesMapList.size()-1);
+            variablesMapDeque.push(new HashMap<>());
+            for (eval(forNode.stmtNodeLeft, variablesMapDeque); valueToBoolean(forNode.conditionMiddle.getValue(variablesMapDeque)); eval(forNode.operationRight, variablesMapDeque))
+                eval(forNode.statement, variablesMapDeque);
+            variablesMapDeque.pop();
             return;
         }else if (node instanceof ExprStmtNode) {
             ExprStmtNode exprStmtNode = (ExprStmtNode) node;
             for (ExprNode exprNode : exprStmtNode.expr)
-                evalExpr(exprNode, variablesMapList);
+                evalExpr(exprNode, variablesMapDeque);
             return;
         }else if (node instanceof PrintNode) {
             PrintNode printNode = (PrintNode) node;
-            System.out.println(printNode.var.getValue(variablesMapList));
+            System.out.println(printNode.var.getValue(variablesMapDeque));
             return;
         }
         throw new IllegalStateException(node.toString());
     }
 
-    public static Integer evalExpr(ExprNode node, List<Map<String, Integer>> variablesMapList){
+    public static int evalExpr(ExprNode node, ArrayDeque<Map<String, Integer>> variablesMapDeque){
         //System.out.println("СЛУЖЕБНОЕ: " + node.toString());
         if (node instanceof NumberNode || node instanceof VarNode){
-            return node.getValue(variablesMapList);
+            return node.getValue(variablesMapDeque);
         }else if (node instanceof UnaryOpNode) {
             UnaryOpNode unaryOpNode = (UnaryOpNode) node;
             switch (unaryOpNode.operation.type) {
                 case NOT:
-                    return binaryUnsignedNOT(unaryOpNode.operand.getValue(variablesMapList));
+                    return binaryUnsignedNOT(unaryOpNode.operand.getValue(variablesMapDeque));
+                case SUB:
+                    return -unaryOpNode.operand.getValue(variablesMapDeque);
                 case DEC:
                     if (unaryOpNode.operand instanceof VarNode) {
                         VarNode varNode = (VarNode) unaryOpNode.operand;
-                        varNode.setValue(varNode.getValue(variablesMapList) - 1, variablesMapList);
-                        return varNode.getValue(variablesMapList);
-                    }else throw new SemanticsException("Декремент может применяться только для переменных");
+                        varNode.setValue(varNode.getValue(variablesMapDeque) - 1, variablesMapDeque);
+                        return varNode.getValue(variablesMapDeque);
+                    }else throw new SemanticsException("Декремент может применяться только для переменных", unaryOpNode.operation);
                 case INC:
                     if (unaryOpNode.operand instanceof VarNode) {
                         VarNode varNode = (VarNode) unaryOpNode.operand;
-                        varNode.setValue(varNode.getValue(variablesMapList) + 1, variablesMapList);
-                        return varNode.getValue(variablesMapList);
-                    }else throw new SemanticsException("Инкремент может применяться только для переменных");
+                        varNode.setValue(varNode.getValue(variablesMapDeque) + 1, variablesMapDeque);
+                        return varNode.getValue(variablesMapDeque);
+                    }else throw new SemanticsException("Инкремент может применяться только для переменных", unaryOpNode.operation);
             }
         } else if (node instanceof BinOpNode) {
             BinOpNode binOp = (BinOpNode) node;
-            Integer right = binOp.right.getValue(variablesMapList);
+            Integer right = binOp.right.getValue(variablesMapDeque);
+
             /*
                 Присваивание вынесено отдельно из-за того, что получать значение left нельзя, ибо переменная может быть не инциализирована (из-за чего вылетает Exception),
                 Поэтому, чтобы не писать каждый раз binOp.left.getValue(), а просто использовать left, был использован данный костыль
             */
+
             if (binOp.op.type == ASSIGNMENT) {
                 if (binOp.left instanceof VarNode) {
                     VarNode var = (VarNode) binOp.left;
-                    var.setValue(right, variablesMapList);
-                    return binOp.left.getValue(variablesMapList);
+                    var.setValue(right, variablesMapDeque);
+                    return right;
                 }else
-                    throw new SemanticsException("Присвоить значение можно только переменным");
+                    throw new SemanticsException("Присвоить значение можно только переменным", binOp.op);
             }
-            Integer left = binOp.left.getValue(variablesMapList);
+
+            Integer left = binOp.left.getValue(variablesMapDeque);
             switch (binOp.op.type) {
                 case ADD:
                     return left + right;
@@ -156,9 +156,9 @@ public class Executor {
                     if (result != null) {
                         if (binOp.left instanceof VarNode) {
                             VarNode var = (VarNode) binOp.left;
-                            var.setValue(result, variablesMapList);
+                            var.setValue(result, variablesMapDeque);
                         }else
-                            throw new SemanticsException("Присвоить значение можно только переменным");
+                            throw new SemanticsException("Присвоить значение можно только переменным", binOp.op);
                         return result;
                     }
 
