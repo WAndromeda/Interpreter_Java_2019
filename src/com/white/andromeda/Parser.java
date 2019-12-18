@@ -3,6 +3,7 @@ package com.white.andromeda;
 import com.white.andromeda.AST.*;
 import com.white.andromeda.Exception.ParserException;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -68,16 +69,16 @@ public class Parser {
     }
 
     private ExprNode parseUnary() {
-        Token unaryNot = match(NOT);
-        Token unarySub = match(SUB);
+        Token t;
+        ArrayDeque<Token> unaryDeque = new ArrayDeque<>();
+        while ( (t = match(NOT, SUB)) != null )
+            unaryDeque.push(t);
         ExprNode e1 = parseParens();
         Token unaryPostIncDec = match(INC, DEC);
         if (unaryPostIncDec != null)
             e1 = new UnaryOpNode(unaryPostIncDec, e1);
-        if (unarySub != null)
-            e1 = new UnaryOpNode(unarySub, e1);
-        if (unaryNot != null)
-            e1 = new UnaryOpNode(unaryNot, e1);
+        while (!unaryDeque.isEmpty())
+            e1 = new UnaryOpNode(unaryDeque.pop(), e1);
         return e1;
     }
 

@@ -190,6 +190,7 @@ public class Executor {
 
     private static int binaryUnsignedNOT(int number) {
         String binary = Integer.toBinaryString(number);
+        //System.out.println("СЛУЖЕБНОЕ: " + binary);
         StringBuilder sum = new StringBuilder();
         for (char ch : binary.toCharArray()) {
             if (ch == '0')
